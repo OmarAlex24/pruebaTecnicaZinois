@@ -4,11 +4,12 @@ import { ContactoController } from './contacto.controller';
 import { Contacto } from './entities/contacto.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsuarioModule } from 'src/usuario/usuario.module';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Contacto]), UsuarioModule],
   controllers: [ContactoController],
-  providers: [ContactoService],
+  providers: [ContactoService, JwtService],
   exports: [ContactoService],
 })
 export class ContactoModule {}

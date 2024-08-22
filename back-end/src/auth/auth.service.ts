@@ -1,5 +1,6 @@
 import {
-  ConsoleLogger,
+  forwardRef,
+  Inject,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -7,13 +8,13 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { EncryptionService } from 'encryption.service';
 import { ResponseUsuarioDto } from 'src/usuario/dto/response-usuario.dto';
-import { Usuario } from 'src/usuario/entities/usuario.entity';
 import { UsuarioService } from 'src/usuario/usuario.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsuarioService,
+    @Inject(forwardRef(() => UsuarioService))
+    private readonly usersService: UsuarioService,
     private jwtService: JwtService,
     private encryptionService: EncryptionService,
   ) {}
@@ -29,8 +30,10 @@ export class AuthService {
     if (!userWithoutPassword) {
       throw new UnauthorizedException('Invalid password or email');
     }
+
     Logger.log('User found');
     Logger.log('Validating password');
+
     const isPasswordValid = await this.encryptionService.comparePassword(
       plainPass,
       password,
@@ -39,12 +42,16 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid password or email');
     }
+
     Logger.log('Password is valid');
     return userWithoutPassword as ResponseUsuarioDto;
   }
 
-  async login(user: Usuario) {
+  async login(user: ResponseUsuarioDto) {
+    Logger.log('Generating payload for token');
     const payload = { email: user.email, sub: user.id };
+    Logger.log('Payload generated');
+    Logger.log('Signing token');
     return {
       access_token: await this.jwtService.signAsync(payload),
     };

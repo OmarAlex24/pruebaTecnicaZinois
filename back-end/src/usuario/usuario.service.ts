@@ -1,6 +1,8 @@
 import {
   BadRequestException,
+  forwardRef,
   HttpStatus,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -10,11 +12,11 @@ import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { Usuario } from './entities/usuario.entity';
 import { EncryptionService } from 'encryption.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Equal, Repository } from 'typeorm';
 import { ResponseUsuarioDto } from './dto/response-usuario.dto';
 import { isUUID } from 'class-validator';
 import { SuccessResponse } from 'src/response/success-response.dto';
-import { Contacto } from 'src/contacto/entities/contacto.entity';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class UsuarioService {
@@ -22,6 +24,8 @@ export class UsuarioService {
     @InjectRepository(Usuario)
     private usuarioRepository: Repository<Usuario>,
     private readonly encryptionService: EncryptionService,
+    @Inject(forwardRef(() => AuthService))
+    private readonly authService: AuthService,
   ) {}
 
   getUserWithoutPass(user: Usuario): ResponseUsuarioDto {
@@ -42,7 +46,6 @@ export class UsuarioService {
       withDeleted: true,
     });
   }
-
   async findIncludingDeletedById(id: string): Promise<Usuario> {
     return await this.usuarioRepository.findOne({
       where: { id: id },
@@ -59,23 +62,20 @@ export class UsuarioService {
 
   async create(
     createUsuarioDto: CreateUsuarioDto,
-  ): Promise<SuccessResponse<{ usuario: ResponseUsuarioDto }>> {
+  ): Promise<SuccessResponse<{ usuario: ResponseUsuarioDto; access_token }>> {
     Logger.log('Searching if email already exists');
     const usuarioExists = await this.existsIncludingDeletedByEmail(
       createUsuarioDto.email,
     );
-
+    Logger.log('Email exists', usuarioExists);
     if (usuarioExists) {
       throw new BadRequestException('Email already exists');
     }
 
     Logger.log('Hashing password');
-    Logger.log(`Password to hash: ${createUsuarioDto.password}`); // Be careful with logging passwords in production
-
     const hashedPassword = await this.encryptionService.hashPassword(
       createUsuarioDto.password,
     );
-
     Logger.log('Password hashed successfully');
 
     const usuario: Usuario = this.usuarioRepository.create({
@@ -85,14 +85,20 @@ export class UsuarioService {
       updatedAt: null,
       deletedAt: null,
     });
-    Logger.log(`Hashed password: ${hashedPassword}`);
 
-    this.usuarioRepository.save(usuario);
-    const usuarioResponse = this.getUserWithoutPass(usuario);
+    const savedUser: Usuario = await this.usuarioRepository.save(usuario);
+    Logger.log('User saved successfully');
+
+    const { password, ...usuarioResponse } = savedUser;
+    const { access_token } = await this.authService.login(usuarioResponse);
+    Logger.log('Returning response');
 
     return new SuccessResponse(
       'User created successfully',
-      { usuario: usuarioResponse },
+      {
+        usuario: usuarioResponse,
+        access_token,
+      },
       HttpStatus.CREATED,
     );
   }

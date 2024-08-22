@@ -13,6 +13,6 @@ export class EncryptionService {
     password: string,
     hashedPassword: string,
   ): Promise<boolean> {
-    return bcrypt.compare(password, hashedPassword);
+    return bcrypt.compareSync(password, hashedPassword);
   }
 }

@@ -20,7 +20,7 @@ export class Usuario {
   @Column()
   name: string;
 
-  @Index({ unique: true })
+  @Index()
   @Column()
   @IsEmail()
   email: string;

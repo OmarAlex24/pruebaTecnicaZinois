@@ -10,6 +10,8 @@ import { Usuario } from './usuario/entities/usuario.entity';
 import { AuthModule } from './auth/auth.module';
 import { Contacto } from './contacto/entities/contacto.entity';
 import { ContactoService } from './contacto/contacto.service';
+import { AuthService } from './auth/auth.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -23,12 +25,11 @@ import { ContactoService } from './contacto/contacto.service';
       entities: [Usuario, Contacto],
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([Usuario, Contacto]),
     UsuarioModule,
     ContactoModule,
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService, UsuarioService, EncryptionService, ContactoService],
+  providers: [AppService, EncryptionService, JwtService],
 })
 export class AppModule {}
