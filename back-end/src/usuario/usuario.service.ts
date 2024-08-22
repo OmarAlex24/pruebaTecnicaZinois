@@ -95,7 +95,7 @@ export class UsuarioService {
 
     this.usuarioRepository.save(usuario);
     return new SuccessResponse(
-      'User updated successfully',
+      'User created successfully',
       { usuario: usuarioResponse },
       HttpStatus.CREATED,
     );
