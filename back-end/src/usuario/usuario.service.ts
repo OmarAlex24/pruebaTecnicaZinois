@@ -70,6 +70,8 @@ export class UsuarioService {
     }
 
     Logger.log('Hashing password');
+    Logger.log(`Password to hash: ${createUsuarioDto.password}`); // Be careful with logging passwords in production
+
     const hashedPassword = await this.encryptionService.hashPassword(
       createUsuarioDto.password,
     );
@@ -77,23 +79,17 @@ export class UsuarioService {
     Logger.log('Password hashed successfully');
 
     const usuario: Usuario = this.usuarioRepository.create({
-      createdAt: new Date(),
-      updatedAt: null,
-      deletedAt: null,
+      ...createUsuarioDto,
       password: hashedPassword,
-      ...createUsuarioDto,
-    });
-
-    const usuarioResponse: ResponseUsuarioDto = {
-      id: usuario.id,
       createdAt: new Date(),
       updatedAt: null,
       deletedAt: null,
-      contactos: null,
-      ...createUsuarioDto,
-    };
+    });
+    Logger.log(`Hashed password: ${hashedPassword}`);
 
     this.usuarioRepository.save(usuario);
+    const usuarioResponse = this.getUserWithoutPass(usuario);
+
     return new SuccessResponse(
       'User created successfully',
       { usuario: usuarioResponse },
